@@ -18957,12 +18957,6 @@ var AppDispatcher = require('../dispatcher/AppDispatcher');
 var AppConstants = require('../constants/AppConstants');
 
 var AppActions = {
-  addItem: function(item){
-    AppDispatcher.handleViewAction({
-      actionType: AppConstants.ADD_ITEM,
-      item: item
-    })
-  },
   messageReceived: function(message){
   	AppDispatcher.handleViewAction({
   		actionType: AppConstants.NEW_MESSAGE,
@@ -18973,35 +18967,138 @@ var AppActions = {
 
 module.exports = AppActions
 
-},{"../constants/AppConstants":155,"../dispatcher/AppDispatcher":156}],154:[function(require,module,exports){
+},{"../constants/AppConstants":157,"../dispatcher/AppDispatcher":159}],154:[function(require,module,exports){
 /** @jsx React.DOM */
 var React = require('react');
 var AppActions = require('../actions/AppActions');
 var AppStore = require('../stores/AppStore');
+var Messages = require('./messages');
+
+function getAppState() {
+  return {
+    allMessages: AppStore.getAll()
+  };
+}
 
 var App = React.createClass({displayName: 'App',
-    handleClick:function(){
-      AppActions.addItem('this is the item');
+    getInitialState: function() {
+      return getAppState();
     },
+
+    componentDidMount: function() {
+      AppStore.addChangeListener(this._onChange);
+    },
+
+    componentWillUnmount: function() {
+      AppStore.removeChangeListener(this._onChange);
+    },
+
     render:function(){
       return (
         React.DOM.div({className: "wrapper"}, 
-          React.DOM.h3({onClick: this.handleClick}, "Click this Title, then check console")
+          Messages({allMessages: this.state.allMessages})
         )
+      )
+    },
+    _onChange: function() {
+      this.setState(getAppState());
+    }
+  });
+
+module.exports = App;
+
+},{"../actions/AppActions":153,"../stores/AppStore":161,"./messages":156,"react":152}],155:[function(require,module,exports){
+/** @jsx React.DOM */
+var React = require('react');
+var ReactPropTypes = React.PropTypes;
+
+var App = React.createClass({displayName: 'App',
+    propTypes: {
+      msg: ReactPropTypes.string.isRequired,
+    },
+
+    render:function(){
+      return (
+        React.DOM.li({id: "single-msg"}, this.props.msg)
       )
     }
   });
 
 module.exports = App;
 
-},{"../actions/AppActions":153,"../stores/AppStore":158,"react":152}],155:[function(require,module,exports){
+},{"react":152}],156:[function(require,module,exports){
+/** @jsx React.DOM */
+var React = require('react');
+var Message = require('./message');
+var ReactPropTypes = React.PropTypes;
+var Socket = require('../data/SocketService');
+
+var App = React.createClass({displayName: 'App',
+    getInitialState: function () {
+      return { text: "" };
+    },
+
+    propTypes: {
+      allMessages: ReactPropTypes.object.isRequired,
+    },
+
+    render:function(){
+      var msgs = []
+      for (var key in this.props.allMessages) {
+        msgs.push(Message({key: key, msg: this.props.allMessages[key]}));
+      }
+      return (
+        React.DOM.section({id: "main"}, 
+          React.DOM.input({id: "out-msg", type: "text", value: this.state.text, onChange: this._onChange}), 
+          React.DOM.button({onClick: this._sendMessage}), 
+          React.DOM.ul({id: "message-list"}, msgs)
+        )
+      )
+    },
+
+    _onChange: function(event) {
+      console.log(event.target.value);
+      this.setState({
+        text: event.target.value
+      });
+    },
+
+    _sendMessage: function() {
+      Socket.sendMessage(JSON.stringify(this.state.text));
+      this.setState({
+        value: ''
+      });
+    }
+  });
+
+module.exports = App;
+
+},{"../data/SocketService":158,"./message":155,"react":152}],157:[function(require,module,exports){
 module.exports = {
-  ADD_ITEM: 'ADD_ITEM',
-  REMOVE_ITEM: 'REMOVE_ITEM',
-  NEW_MESSAGE: 'NEW_MESSAGE'
+	NEW_MESSAGE: 'NEW_MESSAGE'
 };
 
-},{}],156:[function(require,module,exports){
+},{}],158:[function(require,module,exports){
+var AppActions = require('../actions/AppActions');
+
+var sock = new SockJS('http://localhost:3333/echo');
+
+module.exports = {
+    start: function() {
+        sock.onopen = function() {
+            console.log('open');
+        };
+        sock.onmessage = function(e) {
+            AppActions.messageReceived(JSON.parse(e.data));
+        };
+    },
+
+    sendMessage: function(message) {
+        sock.send(message);
+    }
+};
+
+},{"../actions/AppActions":153}],159:[function(require,module,exports){
 var Dispatcher = require('flux').Dispatcher;
 var assign = require('object-assign');
 
@@ -19013,7 +19110,7 @@ var AppDispatcher = assign(new Dispatcher(), {
 
 module.exports = AppDispatcher;
 
-},{"flux":1,"object-assign":6}],157:[function(require,module,exports){
+},{"flux":1,"object-assign":6}],160:[function(require,module,exports){
 /** @jsx React.DOM */
 var React = require('react');
 
@@ -19026,64 +19123,64 @@ React.render(
   document.getElementById('main')
 );
 
-},{"./components/app.js":154,"react":152}],158:[function(require,module,exports){
+},{"./components/app.js":154,"react":152}],161:[function(require,module,exports){
 var AppDispatcher = require('../dispatcher/AppDispatcher');
 var EventEmitter = require('events').EventEmitter;
 var AppConstants = require('../constants/AppConstants');
 var assign = require('object-assign');
+var Socket = require('../data/SocketService');
 
+Socket.start();
 
 var CHANGE_EVENT = 'change';
 
-var _messages = {};
+var _messages = ["First msg.", "rywqnvmxc fe8w hfhasdf", "dHDUHSAD ewqdsa"]
 
 /**
  * Create a Message.
  */
 function addMessage(data) {
-  _messages[data[id]] = {
-    lat: data[lat],
-    lng: data[lng],
-    message: data[msg.trim()]
-  };
+	_messages.push(data);
+  // _messages[data[id]] = {
+  //   lat: data[lat],
+  //   lng: data[lng],
+  //   message: data[msg.trim()]
+  // };
 }
 
 var AppStore = assign({}, EventEmitter.prototype, {
   emitChange: function() {
     this.emit(CHANGE_EVENT);
   },
-  /**
-   * Get the entire collection of Messages.
-   */
+  
   getAll: function() {
     return _messages;
+  },
+
+  addChangeListener: function(callback) {
+    this.on(CHANGE_EVENT, callback);
+  },
+
+  removeChangeListener: function(callback) {
+    this.removeListener(CHANGE_EVENT, callback);
   }
 });
 
 AppDispatcher.register(function(action){
 	switch(action.actionType) {
-		case AppConstants.ADD_ITEM:
-			console.log("ADD ITEM");
-			break;
-
-		case AppConstants.REMOVE_ITEM:
-			console.log("REMOVE ITEM");
-			break;
-
 		case AppConstants.NEW_MESSAGE:
 			addMessage(action.data);
 			AppStore.emitChange();
-			console.log("NEW MESSAGE");
+			console.log(action.data);
 			break;
 
 		default:
 			console.log("default");
 			break;
 	}
-	console.log(action);
 	return true;
 });
 
 module.exports = AppStore;
 
-},{"../constants/AppConstants":155,"../dispatcher/AppDispatcher":156,"events":4,"object-assign":6}]},{},[157])
+},{"../constants/AppConstants":157,"../data/SocketService":158,"../dispatcher/AppDispatcher":159,"events":4,"object-assign":6}]},{},[160])

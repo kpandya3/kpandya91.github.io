@@ -1,11 +1,11 @@
 {
-  "name": "flux",
+  "name": "MapApp",
   "version": "0.0.1",
-  "description": "A simple TODOS app in React and Flux",
-  "author": "Ben Grunfeld",
-  "repository": "https://github.com/bengrunfeld/flux-react-todos",
-  "readme": "https://github.com/bengrunfeld/flux-react-todos/README.md",
-  "license": "Apache 2",
+  "description": "A simple app in React and Flux",
+  "author": "Kumar Pandya",
+  "repository": "https://github.com/kpandya91/kpandya91.github.io.git",
+  "readme": "https://github.com/kpandya91/kpandya91.github.io.git/README.md",
+  "license": "MIT",
   "devDependencies": {
     "gulp": "^3.8.11",
     "gulp-browserify": "^0.5.0",
